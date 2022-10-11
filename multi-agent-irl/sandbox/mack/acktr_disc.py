@@ -3,7 +3,7 @@ import time
 
 import joblib
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from rl.acktr.utils import Scheduler, find_trainable_variables, discount_with_dones
 from rl.acktr.utils import cat_entropy, mse, onehot, multionehot
 from rl import logger
@@ -16,6 +16,7 @@ class Model(object):
     def __init__(self, policy, ob_space, ac_space, nenvs, total_timesteps, nprocs=2, nsteps=200,
                  nstack=1, ent_coef=0.00, vf_coef=0.5, vf_fisher_coef=1.0, lr=0.25, max_grad_norm=0.5,
                  kfac_clip=0.001, lrschedule='linear', identical=None, use_kfac=True):
+        
         config = tf.ConfigProto(allow_soft_placement=True,
                                 intra_op_parallelism_threads=nprocs,
                                 inter_op_parallelism_threads=nprocs)
@@ -41,6 +42,8 @@ class Model(object):
         print(pointer)
 
         A, ADV, R, PG_LR = [], [], [], []
+        
+        tf.compat.v1.disable_eager_execution()
         for k in range(num_agents):
             if identical[k]:
                 A.append(A[-1])
@@ -135,11 +138,11 @@ class Model(object):
                     clone_op.append(clone_op[-1])
                 else:
                     with tf.variable_scope('optim_%d' % k):
-                        optim.append(kfac.KfacOptimizer(
-                            learning_rate=PG_LR[k], clip_kl=kfac_clip,
-                            momentum=0.9, kfac_update=1, epsilon=0.01,
-                            stats_decay=0.99, async=0, cold_iter=10,
-                            max_grad_norm=max_grad_norm)
+                        optim.append(
+                            kfac.KfacOptimizer(learning_rate=PG_LR[k], clip_kl=kfac_clip,
+                                                momentum=0.9, kfac_update=1, epsilon=0.01,
+                                                stats_decay=0.99, _async=0, cold_iter=10,
+                                                max_grad_norm=max_grad_norm)
                         )
                         update_stats_op.append(optim[k].compute_and_apply_stats(joint_fisher_loss[k], var_list=params[k]))
                         train_op_, q_runner_ = optim[k].apply_gradients(list(zip(grads[k], params[k])))
@@ -150,7 +153,7 @@ class Model(object):
                         clones.append(kfac.KfacOptimizer(
                             learning_rate=PG_LR[k], clip_kl=kfac_clip,
                             momentum=0.9, kfac_update=1, epsilon=0.01,
-                            stats_decay=0.99, async=1, cold_iter=10,
+                            stats_decay=0.99, _async=1, cold_iter=10,
                             max_grad_norm=max_grad_norm)
                         )
                         update_stats_op.append(clones[k].compute_and_apply_stats(
@@ -416,6 +419,8 @@ class Runner(object):
 def learn(policy, env, seed, total_timesteps=int(40e6), gamma=0.95, lam=0.92, log_interval=1, nprocs=32, nsteps=20,
           nstack=1, ent_coef=0.00, vf_coef=0.5, vf_fisher_coef=1.0, lr=0.25, max_grad_norm=0.5,
           kfac_clip=0.001, save_interval=100, lrschedule='linear', identical=None):
+
+    
     tf.reset_default_graph()
     set_global_seeds(seed)
 

@@ -1,4 +1,5 @@
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
+tf.compat.v1.disable_eager_execution()
 import numpy as np
 import joblib
 from rl.acktr.utils import Scheduler, find_trainable_variables
@@ -91,7 +92,7 @@ class Discriminator(object):
             # d_optim = kfac.KfacOptimizer(
             #     learning_rate=self.lr_rate, clip_kl=kfac_clip,
             #     momentum=0.9, kfac_update=1, epsilon=0.01,
-            #     stats_decay=0.99, async=0, cold_iter=10,
+            #     stats_decay=0.99, _async=0, cold_iter=10,
             #     max_grad_norm=max_grad_norm)
             # update_stats_op = d_optim.compute_and_apply_stats(fisher_loss, var_list=params)
             # train_op, q_runner = d_optim.apply_gradients(list(zip(grads, params)))

@@ -8,6 +8,8 @@ from rl.acktr.utils import conv, fc, dense, conv_to_fc, sample, kl_div
 class CategoricalPolicy(object):
     def __init__(self, sess, ob_space, ac_space, ob_spaces, ac_spaces,
                  nenv, nsteps, nstack, reuse=False, name='model'):
+        import tensorflow.compat.v1 as tf
+        tf.compat.v1.disable_eager_execution()
         nbatch = nenv * nsteps
         ob_shape = (nbatch, ob_space.shape[0] * nstack)
         all_ob_shape = (nbatch, sum([obs.shape[0] for obs in ob_spaces]) * nstack)

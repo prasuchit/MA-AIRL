@@ -1,4 +1,6 @@
+LICENSE.txt
 README.md
+setup.py
 bin/__init__.py
 bin/interactive.py
 multiagent/__init__.py

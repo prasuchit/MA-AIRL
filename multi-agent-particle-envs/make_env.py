@@ -32,17 +32,28 @@ def make_env(scenario_name, benchmark=False):
     from multiagent.environment import MultiAgentEnv
     import multiagent.scenarios as scenarios
 
-    # load scenario from script
-    scenario = scenarios.load(scenario_name + ".py").Scenario()
-    # create world
-    world = scenario.make_world()
-    # create multiagent environment
-    if benchmark:
-        env = MultiAgentEnv(world, scenario.reset_world, scenario.reward, scenario.observation, scenario.benchmark_data)
+    if ':' in scenario_name:
+        import gym
+        if 'assistive_gym' in scenario_name:
+            import importlib
+            module = importlib.import_module('assistive_gym.envs')
+            env_class = getattr(module, scenario_name.split('-')[0] + 'Env')
+            env = env_class()
+            return env
+        else:
+            return gym.make(scenario_name)
     else:
-        env = MultiAgentEnv(world, scenario.reset_world, scenario.reward, scenario.observation,
-                            done_callback=scenario.done)
-    return env
+        # load scenario from script
+        scenario = scenarios.load(scenario_name + ".py").Scenario()
+        # create world
+        world = scenario.make_world()
+        # create multiagent environment
+        if benchmark:
+            env = MultiAgentEnv(world, scenario.reset_world, scenario.reward, scenario.observation, scenario.benchmark_data)
+        else:
+            env = MultiAgentEnv(world, scenario.reset_world, scenario.reward, scenario.observation,
+                                done_callback=scenario.done)
+        return env
 
 
 def get_identical(env_id):

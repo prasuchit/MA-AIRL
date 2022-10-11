@@ -148,7 +148,7 @@ class Model(object):
                         optim.append(kfac.KfacOptimizer(
                             learning_rate=PG_LR[k], clip_kl=kfac_clip,
                             momentum=0.9, kfac_update=1, epsilon=0.01,
-                            stats_decay=0.99, async=1, cold_iter=10,
+                            stats_decay=0.99, _async=1, cold_iter=10,
                             max_grad_norm=max_grad_norm)
                         )
                         # update_stats_op.append(optim[k].compute_and_apply_stats(pg_fisher_loss[k], var_list=params[k]))
@@ -161,7 +161,7 @@ class Model(object):
                         vf_optim.append(kfac.KfacOptimizer(
                             learning_rate=0.001, clip_kl=kfac_clip,
                             momentum=0.9, kfac_update=2, epsilon=0.1,
-                            stats_decay=0.95, async=1, cold_iter=50,
+                            stats_decay=0.95, _async=1, cold_iter=50,
                             max_grad_norm=None)
                         )
                         # update_stats_op.append(vf_optim[k].compute_and_apply_stats(joint_fisher_loss[k], var_list=params[k]))
@@ -175,7 +175,7 @@ class Model(object):
                         clones.append(kfac.KfacOptimizer(
                             learning_rate=PG_LR[k], clip_kl=kfac_clip,
                             momentum=0.9, kfac_update=1, epsilon=0.01,
-                            stats_decay=0.99, async=0, cold_iter=10,
+                            stats_decay=0.99, _async=0, cold_iter=10,
                             max_grad_norm=max_grad_norm)
                         )
                         update_stats_op.append(clones[k].compute_and_apply_stats(

@@ -1,2 +1,6 @@
-*.pyc
-__pycache__
+**/*.pyc
+**/__pycache__
+**/*.pkl
+**/logs/*
+**/exp_trajs/*
+**/exps/*

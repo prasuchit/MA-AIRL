@@ -1,10 +1,11 @@
 import os
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import rl.common.tf_util as U
 from collections import deque
 
 def sample(logits, axis=1):
+    
     noise = tf.random_uniform(tf.shape(logits))
     return tf.argmax(logits - tf.log(-tf.log(noise)), axis=axis)
 
@@ -14,6 +15,7 @@ def std(x):
     return tf.sqrt(var)
 
 def cat_entropy(logits):
+    
     a0 = logits - tf.reduce_max(logits, 1, keep_dims=True)
     ea0 = tf.exp(a0)
     z0 = tf.reduce_sum(ea0, 1, keep_dims=True)
@@ -53,8 +55,10 @@ def conv(x, scope, nf, rf, stride, pad='VALID', act=tf.nn.relu, init_scale=1.0):
         return h
 
 def fc(x, scope, nh, act=tf.nn.relu, init_scale=1.0):
+    
     with tf.variable_scope(scope):
-        nin = x.get_shape()[1].value
+        # nin = x.get_shape()[1].value
+        nin = x.get_shape()[1]
         w = tf.get_variable("w", [nin, nh], initializer=ortho_init(init_scale))
         b = tf.get_variable("b", [nh], initializer=tf.constant_initializer(0.0))
         z = tf.matmul(x, w)+b
@@ -102,6 +106,7 @@ def discount_with_dones(rewards, dones, gamma):
     return discounted[::-1]
 
 def find_trainable_variables(key):
+    
     with tf.variable_scope(key):
         return [var for var in tf.trainable_variables() if key in var.name]
 

@@ -4,7 +4,7 @@ import time
 
 import joblib
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from scipy.stats import pearsonr, spearmanr
 from rl.acktr.utils import Scheduler, find_trainable_variables, discount_with_dones
 from rl.acktr.utils import cat_entropy, mse, onehot, multionehot
@@ -51,6 +51,7 @@ class Model(object):
                 R.append(R[-1])
                 PG_LR.append(PG_LR[-1])
             else:
+                tf.compat.v1.disable_eager_execution()
                 A.append(tf.placeholder(tf.int32, [nbatch * scale[k]]))
                 ADV.append(tf.placeholder(tf.float32, [nbatch * scale[k]]))
                 R.append(tf.placeholder(tf.float32, [nbatch * scale[k]]))
@@ -134,7 +135,7 @@ class Model(object):
                     optim.append(kfac.KfacOptimizer(
                         learning_rate=PG_LR[k], clip_kl=kfac_clip,
                         momentum=0.9, kfac_update=1, epsilon=0.01,
-                        stats_decay=0.99, async=0, cold_iter=10,
+                        stats_decay=0.99, _async=0, cold_iter=10,
                         max_grad_norm=max_grad_norm)
                     )
                     update_stats_op.append(optim[k].compute_and_apply_stats(joint_fisher_loss, var_list=params[k]))
@@ -146,7 +147,7 @@ class Model(object):
                     clones.append(kfac.KfacOptimizer(
                         learning_rate=PG_LR[k], clip_kl=kfac_clip,
                         momentum=0.9, kfac_update=1, epsilon=0.01,
-                        stats_decay=0.99, async=0, cold_iter=10,
+                        stats_decay=0.99, _async=0, cold_iter=10,
                         max_grad_norm=max_grad_norm)
                     )
                     update_stats_op.append(clones[k].compute_and_apply_stats(

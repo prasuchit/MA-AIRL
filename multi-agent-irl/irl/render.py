@@ -2,9 +2,11 @@ import gym
 import click
 import multiagent
 import time
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import make_env
 import numpy as np
+import sys
+sys.path.append('MA-AIRL/multi-agent-irl/')
 from rl.common.misc_util import set_global_seeds
 from sandbox.mack.acktr_disc import Model, onehot
 from sandbox.mack.policies import CategoricalPolicy
@@ -29,7 +31,7 @@ def render(env, image):
         return env
 
     env = create_env()
-    path = '/atlas/u/lantaoyu/exps/airl/simple_spread/decentralized/s-200/l-0.1-b-1000-d-0.1-c-500-l2-0.1-iter-1-r-0.0/seed-2/m_24000'
+    path = '/home/psuresh/Desktop/MA-AIRL-Assistive-Gym/MA-AIRL/logs/ma-particle/exps/mack/ma_gym:DecHuRoSorting-v0/l-0.1-b-1000/seed-1/checkpoint10000'
 
     print(path)
     n_agents = len(env.action_space)
@@ -75,6 +77,8 @@ def render(env, image):
             # actions_list = [onehot(np.random.randint(n_actions[k]), n_actions[k]) for k in range(n_agents)]
 
             for k in range(n_agents):
+                # if len(obs[k]) > 11:
+                #     print("Gotcha!")
                 all_ob[k].append(obs[k])
                 all_ac[k].append(actions_list[k])
             all_agent_ob.append(np.concatenate(obs, axis=1))
@@ -110,13 +114,15 @@ def render(env, image):
         for k in range(n_agents):
             avg_ret[k].append(ep_ret[k])
 
-    print(path)
     for k in range(n_agents):
         print('agent', k, np.mean(avg_ret[k]), np.std(avg_ret[k]))
+    
+    save_path = '/home/psuresh/Desktop/MA-AIRL-Assistive-Gym/MA-AIRL/exp_trajs/ma-particle/exps/mack/ma_gym:DecHuRoSorting-v0'
 
-    images = np.array(images)
-    # pkl.dump(sample_trajs, open(path + '-%dtra.pkl' % num_trajs, 'wb'))
+    print(save_path)
+    pkl.dump(sample_trajs, open(save_path + '-%dtra.pkl' % num_trajs, 'wb'))
     if image:
+        images = np.array(images)
         print(images.shape)
         imageio.mimsave(path + '.mp4', images, fps=25)
 

@@ -10,7 +10,7 @@ KFAC_DEBUG = True
 class KfacOptimizer():
 
     def __init__(self, learning_rate=0.01, momentum=0.9, clip_kl=0.01, kfac_update=2, stats_accum_iter=60,
-                 full_stats_init=False, cold_iter=100, cold_lr=None, async=False, async_stats=False, epsilon=1e-2,
+                 full_stats_init=False, cold_iter=100, cold_lr=None, _async=False, async_stats=False, epsilon=1e-2,
                  stats_decay=0.95, blockdiag_bias=False, channel_fac=False, factored_damping=False, approxT2=False,
                  use_float64=False, weight_decay_dict={},max_grad_norm=0.5):
         self.max_grad_norm = max_grad_norm
@@ -19,7 +19,7 @@ class KfacOptimizer():
         self._clip_kl = clip_kl
         self._channel_fac = channel_fac
         self._kfac_update = kfac_update
-        self._async = async
+        self._async = _async
         self._async_stats = async_stats
         self._epsilon = epsilon
         self._stats_decay = stats_decay
@@ -56,6 +56,7 @@ class KfacOptimizer():
         self.stats_eigen = {}
 
     def getFactors(self, g, varlist):
+        import tensorflow.compat.v1 as tf
         graph = tf.get_default_graph()
         factorTensors = {}
         fpropTensors = []
@@ -102,7 +103,8 @@ class KfacOptimizer():
                     bTensor = [
                         i for i in bpropOp.inputs if 'gradientsSampled' in i.name][-1]
                     bTensorShape = fpropOp.outputs[0].get_shape()
-                    if bTensor.get_shape()[0].value == None:
+                    # if bTensor.get_shape()[0].value == None:
+                    if bTensor.get_shape()[0] == None:
                         bTensor.set_shape(bTensorShape)
                     bTensors.append(bTensor)
                     ###
@@ -119,7 +121,8 @@ class KfacOptimizer():
                     if len(bInputsList) > 0:
                         bTensor = bInputsList[0]
                         bTensorShape = fpropOp.outputs[0].get_shape()
-                        if len(bTensor.get_shape()) > 0 and bTensor.get_shape()[0].value == None:
+                        # if len(bTensor.get_shape()) > 0 and bTensor.get_shape()[0].value == None:
+                        if len(bTensor.get_shape()) > 0 and bTensor.get_shape()[0] == None:
                             bTensor.set_shape(bTensorShape)
                         bTensors.append(bTensor)
                     fpropOp_name = opTypes.append('UNK-' + fpropOp.op_def.name)
@@ -184,6 +187,7 @@ class KfacOptimizer():
         if len(self.stats) == 0:
             # initialize stats variables on CPU because eigen decomp is
             # computed on CPU
+            import tensorflow.compat.v1 as tf
             with tf.device('/cpu'):
                 tmpStatsCache = {}
 
@@ -253,6 +257,8 @@ class KfacOptimizer():
                             # use homogeneous coordinate
                             if not self._blockdiag_bias and self.stats[var]['assnBias']:
                                 fpropFactor_size += 1
+                            
+                            import tensorflow.compat.v1 as tf
 
                             slot_fpropFactor_stats = tf.Variable(tf.diag(tf.ones(
                                 [fpropFactor_size])) * self._diag_init_coeff, name='KFAC_STATS/' + fpropFactor.op.name, trainable=False)
@@ -295,6 +301,7 @@ class KfacOptimizer():
         if varlist is None:
             varlist = tf.trainable_variables()
 
+        import tensorflow.compat.v1 as tf
         gs = tf.gradients(loss_sampled, varlist, name='gradientsSampled')
         self.gs = gs
         factors = self.getFactors(gs, varlist)
@@ -418,7 +425,7 @@ class KfacOptimizer():
                     # way to handle this
                     bpropFactor *= tf.to_float(B)
                     ##
-
+                    import tensorflow.compat.v1 as tf
                     cov_b = tf.matmul(
                         bpropFactor, bpropFactor, transpose_a=True) / tf.to_float(tf.shape(bpropFactor)[0])
 
@@ -521,7 +528,8 @@ class KfacOptimizer():
                     for key in ['fprop_concat_stats', 'bprop_concat_stats']:
                         for stats_var in stats[var][key]:
                             if stats_var not in tmpEigenCache:
-                                stats_dim = stats_var.get_shape()[1].value
+                                # stats_dim = stats_var.get_shape()[1].value
+                                stats_dim = stats_var.get_shape()[1]
                                 e = tf.Variable(tf.ones(
                                     [stats_dim]), name='KFAC_FAC/' + stats_var.name.split(':')[0] + '/e', trainable=False)
                                 Q = tf.Variable(tf.diag(tf.ones(
