@@ -37,7 +37,7 @@ def make_env(scenario_name, benchmark=False):
         if 'assistive_gym' in scenario_name:
             import importlib
             module = importlib.import_module('assistive_gym.envs')
-            env_class = getattr(module, scenario_name.split('-')[0] + 'Env')
+            env_class = getattr(module, scenario_name.split(':')[1].split('-')[0] + 'Env')
             env = env_class()
             return env
         else:

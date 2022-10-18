@@ -3,7 +3,7 @@ import time
 
 import joblib
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from rl.acktr.utils import Scheduler, find_trainable_variables, discount_with_dones
 from rl.acktr.utils import cat_entropy, mse
 from rl import logger
@@ -22,8 +22,8 @@ class Model(object):
         config.gpu_options.allow_growth = True
         self.sess = sess = tf.Session(config=config)
         nbatch = nenvs * nsteps
-        ob_space = [ob_space]
-        ac_space = [ac_space]
+        # ob_space = [ob_space]
+        # ac_space = [ac_space]
         self.num_agents = num_agents = len(ob_space)
         if identical is None:
             identical = [False for _ in range(self.num_agents)]
@@ -207,21 +207,37 @@ class Model(object):
                 if identical[k]:
                     continue
                 new_map = {}
-                if num_agents > 1:
+                if num_agents > 2:
                     action_v = []
+                    acts = np.concatenate([actions[i] for i in range(num_agents) if i != k], axis=1)
                     for j in range(k, pointer[k]):
-                        action_v.append(np.concatenate([actions[i] for i in range(num_agents) if i != k], axis=1))
+                        action_v.append(acts)
                     action_v = np.concatenate(action_v, axis=0)
                     new_map.update({train_model[k].A_v: action_v})
+
+                    newacts = np.concatenate([actions[j] for j in range(k, pointer[k])], axis=0)
+                    
+                elif num_agents > 1:
+                    action_v = []
+                    acts = np.array([actions[i] for i in range(num_agents) if i != k]).squeeze().T
+                    for j in range(k, pointer[k]):
+                        action_v.append(acts)
+                    action_v = np.concatenate(action_v, axis=0)
+                    new_map.update({train_model[k].A_v: action_v})
+
+                    newacts = np.array([actions[i] for i in range(num_agents) if i != k]).squeeze().T
 
                 new_map.update({
                     train_model[k].X: np.concatenate([obs[j] for j in range(k, pointer[k])], axis=0),
                     train_model[k].X_v: np.concatenate([ob.copy() for j in range(k, pointer[k])], axis=0),
-                    A[k]: np.concatenate([actions[j] for j in range(k, pointer[k])], axis=0),
+                    A[k]: newacts,
+                    # A[k]: np.concatenate([actions[j] for j in range(k, pointer[k])], axis=0), 
                     ADV[k]: np.concatenate([advs[j] for j in range(k, pointer[k])], axis=0),
                     R[k]: np.concatenate([rewards[j] for j in range(k, pointer[k])], axis=0),
                     PG_LR[k]: cur_lr / float(scale[k])
                 })
+                # new_map.update({A[k]: np.concatenate([actions[j] for j in range(k, pointer[k])], axis=0)})
+                # new_map[A[k]] = swapped_acts
                 for _ in range(25):
                     sess.run(vf_op[k], feed_dict=new_map)
                     # print(sess.run(vf_loss[k], feed_dict=new_map))
@@ -274,8 +290,10 @@ class Model(object):
             a, v, s = [], [], []
             obs = np.concatenate(ob, axis=1)
             for k in range(num_agents):
-                if num_agents > 1:
+                if num_agents > 2:
                     a_v = np.concatenate([av[i] for i in range(num_agents) if i != k], axis=1)
+                elif num_agents > 1:
+                    a_v = np.array([av[i] for i in range(num_agents) if i != k])
                 else:
                     a_v = None
                 a_, v_, s_ = step_model[k].step(ob[k], obs, a_v)
@@ -290,8 +308,10 @@ class Model(object):
             v = []
             ob = np.concatenate(obs, axis=1)
             for k in range(num_agents):
-                if num_agents > 1:
+                if num_agents > 2:
                     a_v = np.concatenate([av[i] for i in range(num_agents) if i != k], axis=1)
+                elif num_agents > 1:
+                    a_v = np.array([av[i] for i in range(num_agents) if i != k])
                 else:
                     a_v = None
                 v_ = step_model[k].value(ob, a_v)
@@ -307,20 +327,21 @@ class Runner(object):
     def __init__(self, env, model, nsteps, nstack, gamma, lam):
         self.env = env
         self.model = model
-        ob_space = [env.observation_space]
-        ac_space = [env.action_space]
+        ob_space = env.observation_space
+        ac_space = env.action_space
         self.num_agents = len(ob_space)
         self.nenv = nenv = env.num_envs
         self.batch_ob_shape = [
-            (nenv * nsteps, nstack * ob_space[k].shape[0]) for k in range(self.num_agents)]
+            (nenv * nsteps, nstack * ob_space[k].shape[0]) for k in range(self.num_agents)
+        ]
         self.obs = [
-            np.zeros((nenv, nstack * ac_space[k].shape[0])) for k in range(self.num_agents)
+            np.zeros((nenv, nstack * ob_space[k].shape[0])).squeeze() for k in range(self.num_agents)
         ]
         self.actions = [
-            np.zeros((nenv, )) for k in range(self.num_agents)
+            np.zeros((nenv, ac_space[k].shape[0])).squeeze() for k in range(self.num_agents)
         ]
         obs = env.reset()
-        obs = [obs]
+        # obs = [obs]
         self.update_obs(obs)
         self.gamma = gamma
         self.lam = lam
@@ -355,10 +376,10 @@ class Runner(object):
                 mb_values[k].append(values[k])
                 mb_dones[k].append(self.dones[k])
             actions_list = []
-            for i in range(self.nenv):
-                actions_list.append([actions[k][i] for k in range(self.num_agents)])
+            # for i in range(self.nenv):
+            actions_list.append([self.actions[k] for k in range(self.num_agents)])
             obs, rewards, dones, _ = self.env.step(actions_list[0])
-            obs, rewards, dones = [obs], [rewards], [dones]
+            # obs, rewards, dones = [obs], [rewards], [dones]
             # import ipdb; ipdb.set_trace()
             self.states = states
             self.dones = dones

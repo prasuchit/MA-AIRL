@@ -1,6 +1,6 @@
 import re
 from functools import reduce
-
+import tensorflow.compat.v1 as tf
 from rl.acktr.kfac_utils import *
 
 KFAC_OPS = ['MatMul', 'Conv2D', 'BiasAdd']
@@ -56,7 +56,7 @@ class KfacOptimizer():
         self.stats_eigen = {}
 
     def getFactors(self, g, varlist):
-        import tensorflow.compat.v1 as tf
+        
         graph = tf.get_default_graph()
         factorTensors = {}
         fpropTensors = []
@@ -66,8 +66,11 @@ class KfacOptimizer():
 
         def searchFactors(gradient, graph):
             # hard coded search stratergy
-            bpropOp = gradient.op
-            bpropOp_name = bpropOp.name
+            if gradient != None:
+                bpropOp = gradient.op
+                bpropOp_name = bpropOp.name
+            else:
+                bpropOp_name = ''
 
             bTensors = []
             fTensors = []
@@ -187,7 +190,7 @@ class KfacOptimizer():
         if len(self.stats) == 0:
             # initialize stats variables on CPU because eigen decomp is
             # computed on CPU
-            import tensorflow.compat.v1 as tf
+            
             with tf.device('/cpu'):
                 tmpStatsCache = {}
 
@@ -258,7 +261,7 @@ class KfacOptimizer():
                             if not self._blockdiag_bias and self.stats[var]['assnBias']:
                                 fpropFactor_size += 1
                             
-                            import tensorflow.compat.v1 as tf
+                            
 
                             slot_fpropFactor_stats = tf.Variable(tf.diag(tf.ones(
                                 [fpropFactor_size])) * self._diag_init_coeff, name='KFAC_STATS/' + fpropFactor.op.name, trainable=False)
@@ -301,7 +304,7 @@ class KfacOptimizer():
         if varlist is None:
             varlist = tf.trainable_variables()
 
-        import tensorflow.compat.v1 as tf
+        
         gs = tf.gradients(loss_sampled, varlist, name='gradientsSampled')
         self.gs = gs
         factors = self.getFactors(gs, varlist)
@@ -425,7 +428,7 @@ class KfacOptimizer():
                     # way to handle this
                     bpropFactor *= tf.to_float(B)
                     ##
-                    import tensorflow.compat.v1 as tf
+                    
                     cov_b = tf.matmul(
                         bpropFactor, bpropFactor, transpose_a=True) / tf.to_float(tf.shape(bpropFactor)[0])
 

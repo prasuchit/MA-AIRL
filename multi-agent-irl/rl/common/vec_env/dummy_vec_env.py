@@ -14,7 +14,8 @@ class DummyVecEnv(VecEnv):
         self.observation_space = env.observation_space        
         self.ts = np.zeros(len(self.envs), dtype='int')
         self.is_multi_agent = is_multi_agent
-        self.num_agents = len(env.observation_space) if is_multi_agent else 1
+        # self.num_agents = len(env.observation_space) if is_multi_agent else 1
+        self.num_agents = 2 if is_multi_agent else 1    # NOTE: Hardcoded for now, figure out better way later!
 
     def switch_to(self,i=None,option=None):
         assert self.switchers

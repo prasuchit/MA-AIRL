@@ -51,11 +51,15 @@ class SubprocVecEnv(VecEnv):
         self.is_multi_agent = is_multi_agent
         self.num_agents = None
         if is_multi_agent:
-            try:
-                n = len(self.action_space)
-            except:
-                n = len(self.action_space.spaces)
-            self.num_agents = n
+            # if type(self.action_space).__name__ == 'Discrete':
+            #     n = len([self.action_space])        # This might be wrong logic, verify later!
+            # elif type(self.action_space).__name__ == 'Box':
+            #     n = self.action_space.spaces
+            # elif type(self.action_space).__name__ == 'MultiAgentActionSpace':
+            #     n = len(self.action_space._agents_action_space)
+            # else:
+            #     n = len(self.action_space.spaces)
+            self.num_agents = 2    # NOTE: Hardcoded for now, figure out better way later!
 
     def step_async(self, actions):
         # if self.is_multi_agent:

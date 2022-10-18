@@ -1,6 +1,6 @@
 import numpy as np
-import tensorflow as tf
-
+import tensorflow.compat.v1 as tf
+tf.compat.v1.disable_eager_execution()
 import rl.common.tf_util as U
 from rl.acktr.utils import conv, fc, dense, conv_to_fc, sample, kl_div
 
@@ -8,8 +8,6 @@ from rl.acktr.utils import conv, fc, dense, conv_to_fc, sample, kl_div
 class CategoricalPolicy(object):
     def __init__(self, sess, ob_space, ac_space, ob_spaces, ac_spaces,
                  nenv, nsteps, nstack, reuse=False, name='model'):
-        import tensorflow.compat.v1 as tf
-        tf.compat.v1.disable_eager_execution()
         nbatch = nenv * nsteps
         ob_shape = (nbatch, ob_space.shape[0] * nstack)
         all_ob_shape = (nbatch, sum([obs.shape[0] for obs in ob_spaces]) * nstack)
@@ -107,7 +105,7 @@ class GaussianPolicy(object):
                 a, v = sess.run([a0, v0], {X: ob, X_v: obs, A_v: a_v})
             else:
                 a, v = sess.run([a0, v0], {X: ob, X_v: obs})
-            return a, v, []  # dummy state
+            return a.squeeze(), v, []  # dummy state
 
         def value(ob, a_v, *_args, **_kwargs):
             if a_v is not None:
